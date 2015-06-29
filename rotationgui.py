@@ -27,34 +27,33 @@ class RGui(PlotGui):
     def __init__(self,root,
                  figfunc,   ## function for the plotting
                  readfunc,  ## function for reading in data
+                 fitfunc,
                  filelist,  ## list of files
                  verbose=1):
 
-        # read in the data, which is a dictionary
-        self.data = readfunc(filelist[0])
+        
+        self.readfunc = readfunc
+        self.fitfunc = fitfunc
+        self.figfunc = figfunc
                          
         # make figure
         self.fig = plt.figure()
         self.fig.set_size_inches(13,7.5)
-        self.subplots = figfunc(self.data, self.fig) 
 
+        # read in the data and plot it
+        self.data = self.readfunc(filelist[0])
+        self.subplots = self.figfunc(self.data, self.fig) 
+
+        # make the GUI
         PlotGui.__init__(self, root, self.fig)
 
         # lower frames for period fitting options
         lower = Frame(root, borderwidth=1)
         lower.pack()
-        lower_moreleft = Frame(lower)
-        lower_moreleft.pack(side = LEFT, fill = BOTH, padx= 20, pady = 10)
         lower_left = Frame(lower)
         lower_left.pack(side = LEFT, fill = BOTH, padx= 20, pady = 10)
-#        lower_middle = Frame(lower)
-#        lower_middle.pack(side = LEFT, fill = BOTH, padx= 20, pady = 10)
         lower_right = Frame(lower)
         lower_right.pack(side = RIGHT, fill = BOTH, padx = 20, pady = 10)  
-
-
-        ######
-        # LOWER MIDDLE
 
         # text box for period entry
         self.period_entry=StringVar()
@@ -66,6 +65,30 @@ class RGui(PlotGui):
         rephase = Button(lower_right, text='Phase fold and plot model', command=self.update_model, font=self.bigfont)
         rephase.pack(side = LEFT)
 
+        # lower frames for period fitting options
+        lower2 = Frame(root, borderwidth=1)
+        lower2.pack()
+        lower_left2 = Frame(lower2)
+        lower_left2.pack(side = LEFT, fill = BOTH, padx= 20, pady = 10)
+        lower_right2 = Frame(lower2)
+        lower_right2.pack(side = RIGHT, fill = BOTH, padx = 20, pady = 10)  
+
+        # min and max period to fit
+        Label(lower_left2,text='P(min) -> P(max):   ', font=self.smallfont).pack(pady=self.padding, side=LEFT)
+        self.pmin=StringVar()
+        entry = Entry(lower_left2, textvariable=self.pmin, width=10)
+        self.pmin.set(0.1)
+        entry.pack(side=LEFT)
+
+        self.pmax=StringVar()
+        entry = Entry(lower_left2, textvariable=self.pmax, width=10)
+        self.pmax.set(1000.)
+        entry.pack(side=RIGHT)
+        
+        # refit using the current options and plot the results
+        refit = Button(lower_right2, text='Re-fit and plot periodogram', command=self.refit, font=self.bigfont)
+        refit.pack(side = LEFT)
+ 
 
         ######
         # This changes the overall state
@@ -75,8 +98,6 @@ class RGui(PlotGui):
         next_lc.pack(side = RIGHT)
         prev_lc = Button(state_frame, text='Previous Light Curve', font=self.bigfont, command= lambda: self.step_lc(direction=-1))
         prev_lc.pack(side = RIGHT)
-
-
 
         ######
         # SAVE OPTIONS
@@ -116,18 +137,74 @@ class RGui(PlotGui):
         # SAVE!
         Button(save_frame, text='Save', font=self.bigfont, command=self.save_lc, width=10).pack(side=RIGHT, padx=2*self.padding, pady=self.padding)
 
-            
-    def refit(self):
-        pass
-    
-    def update_model(self):
-        pass
+    # fit the data using supplied function
+    def refit(self, vbest=None):
+        
+        try:
+            pmin = float(self.pmin.get())
+            pmax = float(self.pmax.get())
+        except:
+            print "Invalid pmin or pmax, using defaults."
+            pmin = 0.1
+            pmax = 1000
 
+        f, p, a = self.fitfunc(self.data, pmin=pmin, pmax=pmax, vbest=vbest)
+        self.frequency = f
+        self.phase = p
+        self.amplitude = a
+        self.update_model(do_fit=False)
+    
+    # update the model using the supplied period
+    def update_model(self, do_fit=True):
+
+        try:
+            if do_fit:
+                self.refit(vbest=1./float(self.period_entry.get()))
+            self.fig.clf() ## clear the figure
+            self.subplots = self.figfunc(self.data, self.fig, 
+                                    frequency = self.frequency,
+                                    phase = self.phase,
+                                    amplitude = self.amplitude)
+            self.redraw()
+        except:
+            print "failed to updated model given supplied period."
+
+    # save user data on the light curve
     def save_lc(self):
         pass
     
+    # next light curve
     def step_lc(self):
         pass
+
+
+
+######
+# fit data
+######
+import scipy.signal as signal
+def fit_period(lc_data,
+               pmin = 0.1, pmax=1000.,
+               vbest = None):
+
+    lc = lc_data ## place holder for more complicated stuff
+
+    # test frequencies
+    freqs = np.linspace(pmin, pmax, 1000)
+
+    # get the best fit
+    scaled_mags = (lc['flux']-lc['flux'].mean())/lc['flux'].std()
+    periodogram = signal.lombscargle(np.array(lc['time']).astype('float64'), np.array(scaled_mags).astype('float64'), freqs)
+
+    phase = 0.
+    amplitude = 0.01
+    frequency = freqs[np.argmax(periodogram)]
+    
+    if vbest is not None:
+        frequency = vbest
+    
+    print "Best fit:", frequency
+    return frequency, phase, amplitude
 
 
 ######
@@ -147,9 +224,9 @@ def read_text(myfile):
 import math
 def rotation_plot(lc_data, 
                   fig, 
-                  fit_dict=None,
                   plot_binned=False,
-                  plot_model=False,
+                  plot_model=True,
+                  frequency=1., phase=0., amplitude=0.01
                   ):  
 
     nrows = 3
@@ -160,15 +237,6 @@ def rotation_plot(lc_data,
         
     # now plot everything
     for i in range(0,ncols):
-        if fit_dict is not None:
-            phase = fit_dict['phase']
-            period = 1./fit_dict['frequency']
-            amplitude = fit_dict['amplitude']
-            print "read fit from dictionary"
-        else:
-            period = 10.
-            phase = 0.
-            amplitude = 0.01
         
         if type(lc_data) is list:
             lc = lc_data[i]
@@ -184,12 +252,13 @@ def rotation_plot(lc_data,
         raw = fig.add_subplot(nrows,ncols,1+ncols+i, sharey=dat)
         plt.scatter(lc['time'], lc['flux'], color=c)
         if plot_model:
-            y = amplitude*np.sin(2*math.pi*(axrange)/period + phase)
+            axrange=np.linspace(np.min(lc['time']),np.max(lc['time']),1000)
+            y = amplitude*np.sin(2*math.pi*(axrange)*frequency + phase)
             plt.plot(axrange,y,c='k')
     
         # phased light curve: flux v. phase
         phased = fig.add_subplot(nrows,ncols,1+2*ncols+i, sharey=dat)
-        time_folded = np.fmod((lc['time'])/period, 1.0)
+        time_folded = np.fmod((lc['time'])*frequency, 1.0)
         plt.scatter(time_folded, lc['flux'], color=c)
         if plot_model:
             axrange=np.linspace(0,1,1000)
@@ -236,5 +305,5 @@ except:
     
 # run the GUI
 root = Tk() # create a root window
-pg = RGui(root, rotation_plot, read_text, filelist)
+pg = RGui(root, rotation_plot, read_text, fit_period, filelist)
 root.mainloop()
