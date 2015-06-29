@@ -57,17 +57,20 @@ class PlotGui():
         side_frame = Frame(upper)
         side_frame.pack(side = LEFT, padx=self.padding/2.)
 
-        # redraw button
-        redraw = Button(side_frame, text='Redraw', font=self.bigfont, command=self.redraw)
-        redraw.pack(side = TOP, pady=self.padding, fill=BOTH)
-        #redraw.place(in_=side_frame, anchor="c", relx=.5, rely=.8)
-
         # zoom
         self.zooming = False
         self.leftzoom = None
         self.rightzoom = None
         label = Button(side_frame,text='Zoom', font=self.bigfont, command=self.set_zoom)
         label.pack(fill=BOTH)
+
+#        # redraw button
+#        redraw = Button(side_frame, text='Redraw', font=self.bigfont, command=self.redraw)
+#        redraw.pack(side = TOP, pady=self.padding, fill=BOTH)
+
+        # reset button
+        reset = Button(side_frame, text='Reset', font=self.bigfont, command=self.reset)
+        reset.pack(side = TOP, pady=self.padding, fill=BOTH)
  
         # save figure button
  
@@ -130,7 +133,7 @@ class PlotGui():
                           label='',
                           x=FALSE
                          ): 
-
+        print self.subplots
         if x: # x axis scale
             orientation = HORIZONTAL
             low='left'
@@ -180,11 +183,12 @@ class PlotGui():
                 xhigh = self.rightzoom[0]
                 ylow = self.leftzoom[1]
                 yhigh = self.rightzoom[1]
-                self.scale_plots(self.plotlist, 
+                self.scale_plots(self.subplots, 
                                  values={'left':xlow,'right':xhigh,'low':ylow,'high':yhigh})
                 self.zooming = False
                 self.leftzoom = None
                 self.rightzoom = None
+                self.redraw()
 
         return [x,y]
     
@@ -196,6 +200,12 @@ class PlotGui():
     def redraw(self):
         self.canvas.draw()
        
+    def reset(self):
+        for ax in self.subplots:
+            ax.autoscale()  # auto-scale
+            ax.autoscale_view(True,True,True)
+        self.canvas.draw()       # re-draw the figure
+
     # save figure
     def save_fig(self, file_name=None, dir_name=None):
         # make the file name

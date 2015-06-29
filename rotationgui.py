@@ -115,12 +115,6 @@ class RGui(PlotGui):
         # SAVE!
         Button(save_frame, text='Save', font=self.bigfont, command=self.save_lc, width=10).pack(side=RIGHT, padx=2*self.padding, pady=self.padding)
 
-
-    def reset(self):
-        for ax in self.subplots:
-            ax.relim()      # make sure all the data fits
-            ax.autoscale()  # auto-scale
-            ax.draw()       # re-draw the figure
             
     def refit(self):
         pass
@@ -162,7 +156,6 @@ def rotation_plot(lc_data,
         ncols = 1
         
     # now plot everything
-    my_subplots = []
     for i in range(0,ncols):
         if fit_dict is not None:
             phase = fit_dict['phase']
@@ -212,8 +205,10 @@ def rotation_plot(lc_data,
                                 color='k', capthick=1)
     
         # save the subplots!
-        my_subplots.append([dat,raw,phased])
-        if i>0:
+        if i == 0:
+            my_subplots = [dat,raw,phased]
+        else:
+            my_subplots.append([dat,raw,phased])
             # supress plot labels for all but left-most column
             raw.yaxis.set_visible(False)
             phased.yaxis.set_visible(False)
