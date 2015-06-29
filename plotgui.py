@@ -17,6 +17,7 @@ import tkFileDialog
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 import numpy as np
+import pandas as pd
 
 
 ######
@@ -25,11 +26,10 @@ import numpy as np
 
 class PlotGui():
  
-    def __init__(self,root,fig,yrange=np.array([0,0.5]),verbose=0):
+    def __init__(self,root,fig,verbose=0):
         # to do: dynamically choose whether y range is equal-sided
         self.verbose = verbose
         self.fig = fig
-        self.yrange = yrange
         
         # basic settings
         root.title("Plotting GUI ") # title the window
@@ -57,16 +57,26 @@ class PlotGui():
         side_frame = Frame(upper)
         side_frame.pack(side = LEFT, padx=self.padding/2.)
 
+ 
+        # redraw button
+        redraw = Button(side_frame, text='Redraw', font=self.bigfont, command=self.redraw)
+        redraw.pack(side = TOP, pady=self.padding, fill=BOTH)
+
+        # one y limit scale that effects all subplots
+        self.subplots = self.fig.axes[:]
+        ylim_scale = self.setup_lim_scales(side_frame,
+                                            subplots=self.subplots,
+                                            scale_range=[0,self.subplots[0].get_ylim()[1]*10.])
+
+        ylim_scale.set(self.subplots[0].get_ylim()[1]) # set to current upper limit
+        ylim_scale.pack()
+
         # zoom
         self.zooming = False
         self.leftzoom = None
         self.rightzoom = None
         label = Button(side_frame,text='Zoom', font=self.bigfont, command=self.set_zoom)
-        label.pack(fill=BOTH)
-
-#        # redraw button
-#        redraw = Button(side_frame, text='Redraw', font=self.bigfont, command=self.redraw)
-#        redraw.pack(side = TOP, pady=self.padding, fill=BOTH)
+        label.pack(pady=self.padding, fill=BOTH)
 
         # reset button
         reset = Button(side_frame, text='Reset', font=self.bigfont, command=self.reset)

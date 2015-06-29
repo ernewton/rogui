@@ -18,6 +18,7 @@ import tkFont
 import tkFileDialog
 
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 
 # main GUI
@@ -128,6 +129,7 @@ class RGui(PlotGui):
     def step_lc(self):
         pass
 
+
 ######
 # read in data
 ######
@@ -136,7 +138,8 @@ def read_text(myfile):
                        usecols = (0,1,2),
                        dtype={"names": ("time", "flux", "e_flux"),
                               "formats": ("f8", "f4", "f4")})
-    return lc
+        
+    return pd.DataFrame(lc)
 
 ######
 # plots
@@ -214,6 +217,7 @@ def rotation_plot(lc_data,
             phased.yaxis.set_visible(False)
             dat.yaxis.set_visible(False)
     
+    plt.gca().invert_yaxis()
     plt.tight_layout() # too much white space! Narrow all the gaps
     plt.subplots_adjust(wspace=0.07) # even more
     
