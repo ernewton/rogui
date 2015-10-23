@@ -20,6 +20,7 @@ import tkFileDialog
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import pickle
 
 # main GUI
 class RGui(PlotGui):
@@ -35,14 +36,17 @@ class RGui(PlotGui):
         self.readfunc = readfunc
         self.fitfunc = fitfunc
         self.figfunc = figfunc
+        self.filelist = filelist
                          
         # make figure
         self.fig = plt.figure()
         self.fig.set_size_inches(13,7.5)
 
         # read in the data and plot it
-        self.data = self.readfunc(filelist[0])
-        self.subplots = self.figfunc(self.data, self.fig) 
+        self.star = 'target'
+        self.current = 0
+        self.data = self.readfunc(self.filelist[self.current])
+        self.refit()
 
         # make the GUI
         PlotGui.__init__(self, root, self.fig)
@@ -62,7 +66,7 @@ class RGui(PlotGui):
         Label(lower_left, text='New period to plot:', font=self.smallfont).pack(side= RIGHT)
 
         # rephase the model using the current period and replot
-        rephase = Button(lower_right, text='Phase fold and plot model', command=self.update_model, font=self.bigfont)
+        rephase = Button(lower_right, text='Phase fold', command=self.update_model, font=self.bigfont)
         rephase.pack(side = LEFT)
 
         # lower frames for period fitting options
@@ -86,7 +90,7 @@ class RGui(PlotGui):
         entry.pack(side=RIGHT)
         
         # refit using the current options and plot the results
-        refit = Button(lower_right2, text='Re-fit and plot periodogram', command=self.refit, font=self.bigfont)
+        refit = Button(lower_right2, text='Re-fit', command=self.refit, font=self.bigfont)
         refit.pack(side = LEFT)
  
 
@@ -104,13 +108,6 @@ class RGui(PlotGui):
 
         save_frame = Frame(root)
         save_frame.pack()
-
-        # directory for output files
-        self.file_dir_button = Button(state_frame, text='Directory', command= self.choose_file_dir, font=self.smallfont, width=10)
-        self.file_dir_button.pack(side = LEFT, fill=BOTH, pady=self.padding)
-        self.file_dir_value = StringVar()
-        self.file_dir_value.set(os.path.dirname(os.getcwd()))
-        Entry(state_frame,textvariable=self.file_dir_value,font=self.smallfont).pack(side=LEFT, pady=self.padding, padx=self.padding)
 
         # period rating label and drop down menu        
         Label(save_frame, text='   Period Rating', font=self.bigfont).pack(side=LEFT, pady=self.padding)
@@ -171,11 +168,42 @@ class RGui(PlotGui):
 
     # save user data on the light curve
     def save_lc(self):
-        pass
+        myfile = self.dir_value.get() + '/' + self.star + '.pkl'
+        data = {'pmin': self.pmin.get(),
+                'pmax': self.pmax.get(),
+                'frequency': self.frequency,
+                'amplitude': self.amplitude,
+                'phase': self.phase,
+                'rating': self.rating.get(),
+                'evolution':self.evolution.get(),
+                'comment': self.comment.get()
+                }
+
+        if os.path.isfile(myfile):
+            message = "The file %s already exists! Do you want to overwrite?" % myfile
+            if tkMessageBox.askyesno("Plotting GUI",message):
+                output = open(myfile, 'wb')               
+                pickle.dump(data, output) 
+                output.close()
+                if self.verbose > 0: print "Saved file."
+            else:
+                if self.verbose > 0: print "File not saved."
+        else:
+            output = open(myfile, 'wb')                 
+            pickle.dump(data, output) 
+            output.close()
+            if self.verbose > 0: print "Saved file."
     
     # next light curve
-    def step_lc(self):
-        pass
+    def step_lc(self, direction=1):
+        # only step if you haven't reached the end or the beginning
+        if (self.current != 0 and direction < 0) or (self.current != len(self.filelist)-1 and direction > 0):
+            self.current += direction*1
+            self.data = self.readfunc(self.filelist[self.current])
+            self.refit()
+        else:
+            message = "You've reached the end of the list! Staying on current light curve."
+            tkMessageBox.showwarning("LC Step", message) 
 
 
 
@@ -203,7 +231,7 @@ def fit_period(lc_data,
     if vbest is not None:
         frequency = vbest
     
-    print "Best fit:", frequency
+    print "Best fit period:", 1./frequency
     return frequency, phase, amplitude
 
 
@@ -211,12 +239,16 @@ def fit_period(lc_data,
 # read in data
 ######
 def read_text(myfile):
-    lc = np.genfromtxt(myfile,
-                       usecols = (0,1,2),
-                       dtype={"names": ("time", "flux", "e_flux"),
-                              "formats": ("f8", "f4", "f4")})
+    try:
+        lc = np.genfromtxt(myfile,
+                           usecols = (0,1,2),
+                           dtype={"names": ("time", "flux", "e_flux"),
+                                  "formats": ("f8", "f4", "f4")})
         
-    return pd.DataFrame(lc)
+        return pd.DataFrame(lc)
+    except:
+        print myfile
+        return False
 
 ######
 # plots
@@ -225,7 +257,7 @@ import math
 def rotation_plot(lc_data, 
                   fig, 
                   plot_binned=False,
-                  plot_model=True,
+                  plot_model=False,
                   frequency=1., phase=0., amplitude=0.01
                   ):  
 
@@ -247,10 +279,14 @@ def rotation_plot(lc_data,
         # raw light curve: flux v. data number
         dat = fig.add_subplot(nrows,ncols,1+i)  
         plt.scatter(np.arange(len(lc['flux'])), lc['flux'], color=c)
+        plt.xlabel('Data number')
+        plt.ylabel('Magnitude')
         
         # raw light curve: flux v. time
         raw = fig.add_subplot(nrows,ncols,1+ncols+i, sharey=dat)
         plt.scatter(lc['time'], lc['flux'], color=c)
+        plt.xlabel('Time')
+        plt.ylabel('Magnitude')
         if plot_model:
             axrange=np.linspace(np.min(lc['time']),np.max(lc['time']),1000)
             y = amplitude*np.sin(2*math.pi*(axrange)*frequency + phase)
@@ -260,6 +296,8 @@ def rotation_plot(lc_data,
         phased = fig.add_subplot(nrows,ncols,1+2*ncols+i, sharey=dat)
         time_folded = np.fmod((lc['time'])*frequency, 1.0)
         plt.scatter(time_folded, lc['flux'], color=c)
+        plt.xlabel('Phase')
+        plt.ylabel('Magnitude')
         if plot_model:
             axrange=np.linspace(0,1,1000)
             y = amplitude*np.sin(2*math.pi*axrange+phase)
@@ -288,17 +326,21 @@ def rotation_plot(lc_data,
     
     plt.gca().invert_yaxis()
     plt.tight_layout() # too much white space! Narrow all the gaps
-    plt.subplots_adjust(wspace=0.07) # even more
     
     return my_subplots
 
 
 # files to include are the arguments
 try:
-    filelist = ['']*len(sys.argv[1:])
-    for i, arg in enumerate(sys.argv[1:]):
+    filelist = []
+    for arg in sys.argv[1:]:
         print "Reading file ", arg
-        filelist[i] = arg
+        f = open(arg,'r')
+        for line in f:
+            # remove newlines, allow comma separated  
+            xx = line.rstrip('\n').split(',')   
+            for x in xx:
+                filelist.append(x)
 except:
     raise("No files provided")
 

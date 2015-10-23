@@ -59,8 +59,7 @@ class PlotGui():
 
  
         # redraw button
-        redraw = Button(side_frame, text='Redraw', font=self.bigfont, command=self.redraw)
-        redraw.pack(side = TOP, pady=self.padding, fill=BOTH)
+        self.add_redraw_button(side_frame)
 
         # one y limit scale that effects all subplots
         self.subplots = self.fig.axes[:]
@@ -75,32 +74,42 @@ class PlotGui():
         self.zooming = False
         self.leftzoom = None
         self.rightzoom = None
-        label = Button(side_frame,text='Zoom', font=self.bigfont, command=self.set_zoom)
-        label.pack(pady=self.padding, fill=BOTH)
+        self.add_zoom(side_frame) 
 
-        # reset button
-        reset = Button(side_frame, text='Reset', font=self.bigfont, command=self.reset)
+        self.add_reset_button(side_frame)
+        self.add_save_button(side_frame)
+        self.add_dir_button(side_frame)
+        self.add_file_value(side_frame)
+
+    def add_redraw_button(self,frame):
+        redraw = Button(frame, text='Redraw', font=self.bigfont, command=self.redraw)
+        redraw.pack(side = TOP, pady=self.padding, fill=BOTH)
+    
+    def add_zoom(self, frame):
+        label = Button(frame,text='Zoom', font=self.bigfont, command=self.set_zoom)
+        label.pack(pady=self.padding, fill=BOTH)
+    
+    def add_reset_button(self, frame):
+        reset = Button(frame, text='Reset', font=self.bigfont, command=self.reset)
         reset.pack(side = TOP, pady=self.padding, fill=BOTH)
- 
-        # save figure button
- 
-        save_fig = Button(side_frame, text='Save Figure', font=self.bigfont, command=self.save_fig)
+    
+    def add_save_button(self,frame):
+        save_fig = Button(frame, text='Save Figure', font=self.bigfont, command=self.save_fig)
         save_fig.pack(side = TOP, pady=self.padding, padx=self.padding)
 
-        self.dir_button = Button(side_frame, text='Directory', command= self.choose_dir)
+    def add_file_value(self,frame):
+        self.file_value = StringVar()
+        self.file_value.set('figure.ps')
+        Entry(frame,textvariable=self.file_value,font=self.smallfont).pack(pady=self.padding)
+
+    def add_dir_button(self,frame):
+        self.dir_button = Button(frame, text='Directory', command= self.choose_dir)
         self.dir_button.pack(fill=BOTH, pady=self.padding/2., padx=self.padding)
         self.dir_value = StringVar()
         self.dir_value.set(os.path.dirname(os.getcwd()))
-        Entry(side_frame,textvariable=self.dir_value,font=self.smallfont).pack(padx=self.padding)
-  
-#        self.file_button = Button(side_frame, text='File Name', command= self.choose_file)
-#        self.file_button.pack(fill=BOTH, pady=self.padding, padx=self.padding)
-#        self.file_value = StringVar(os.path.dirname(os.path.realpath(__file__)))
-        self.file_value = StringVar()
-        self.file_value.set('figure.ps')
-        Entry(side_frame,textvariable=self.file_value,font=self.smallfont).pack(pady=self.padding)
+        Entry(frame,textvariable=self.dir_value,font=self.smallfont).pack(padx=self.padding)
 
-  
+
     ###### 
     # scaling provided subplots to values 
     def scale_plots(self,subplots,values={}):
@@ -244,8 +253,3 @@ class PlotGui():
     def choose_dir(self):
         dir_name = tkFileDialog.askdirectory()
         self.dir_value.set(str(dir_name) if dir_name else os.path.abspath(os.path.realpath(__file__)))
-
-    # choose dir value for fitting file saves
-    def choose_file_dir(self):
-        file_dir_name = tkFileDialog.askdirectory()
-        self.file_dir_value.set(str(file_dir_name) if file_dir_name else os.path.abspath(os.path.realpath(__file__)))
