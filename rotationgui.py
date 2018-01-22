@@ -16,6 +16,7 @@ else:
 import tkMessageBox
 import tkFont  
 import tkFileDialog
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 
 import numpy as np
 import pandas as pd
@@ -46,7 +47,7 @@ class RGui(PlotGui):
         self.star = 'target'
         self.current = 0
         self.data = self.readfunc(self.filelist[self.current])
-        self.refit()
+        #self.refit()
 
         # make the GUI
         PlotGui.__init__(self, root, self.fig)
@@ -134,6 +135,9 @@ class RGui(PlotGui):
         # SAVE!
         Button(save_frame, text='Save', font=self.bigfont, command=self.save_lc, width=10).pack(side=RIGHT, padx=2*self.padding, pady=self.padding)
 
+
+        self.refit()
+        
     # fit the data using supplied function
     def refit(self, vbest=None):
         
@@ -154,7 +158,7 @@ class RGui(PlotGui):
     # update the model using the supplied period
     def update_model(self, do_fit=True):
 
-        try:
+        if True:
             if do_fit:
                 self.refit(vbest=1./float(self.period_entry.get()))
             self.fig.clf() ## clear the figure
@@ -163,7 +167,7 @@ class RGui(PlotGui):
                                     phase = self.phase,
                                     amplitude = self.amplitude)
             self.redraw()
-        except:
+        else:
             print "failed to updated model given supplied period."
 
     # save user data on the light curve
@@ -211,27 +215,30 @@ class RGui(PlotGui):
 # fit data
 ######
 import scipy.signal as signal
+from astropy.stats import LombScargle
 def fit_period(lc_data,
                pmin = 0.1, pmax=1000.,
                vbest = None):
 
     lc = lc_data ## place holder for more complicated stuff
 
-    # test frequencies
-    freqs = np.linspace(pmin, pmax, 1000)
-
     # get the best fit
     scaled_mags = (lc['flux']-lc['flux'].mean())/lc['flux'].std()
-    periodogram = signal.lombscargle(np.array(lc['time']).astype('float64'), np.array(scaled_mags).astype('float64'), freqs)
+    freqs, periodogram = LombScargle(np.array(lc['time']).astype('float64'), np.array(scaled_mags).astype('float64')).autopower(nyquist_factor=2)
+
+    # test frequencies
+    #freqs = 2.*math.pi/np.linspace(pmin, pmax, 1000)
+    #periodogram = signal.lombscargle(np.array(lc['time']).astype('float64'), np.array(scaled_mags).astype('float64'), freqs)
 
     phase = 0.
-    amplitude = 0.01
+    amplitude = 0.1
     frequency = freqs[np.argmax(periodogram)]
     
     if vbest is not None:
         frequency = vbest
     
     print "Best fit period:", 1./frequency
+
     return frequency, phase, amplitude
 
 
@@ -241,7 +248,8 @@ def fit_period(lc_data,
 def read_text(myfile):
     try:
         lc = np.genfromtxt(myfile,
-                           usecols = (0,1,2),
+                           usecols = (1,2,3),
+                           skip_header=2,
                            dtype={"names": ("time", "flux", "e_flux"),
                                   "formats": ("f8", "f4", "f4")})
         
