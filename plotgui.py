@@ -14,7 +14,7 @@ else:
 import tkMessageBox
 import tkFont
 import tkFileDialog
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 
 import numpy as np
 import pandas as pd
@@ -44,9 +44,13 @@ class PlotGui():
         # for the plot created above
         plot_frame = Frame(upper)
         plot_frame.pack(side=RIGHT, padx=self.padding, pady=self.padding)
-        
-        # draw it
         self.canvas = FigureCanvasTkAgg(self.fig, master=plot_frame)
+
+        toolbar = NavigationToolbar2TkAgg(self.canvas, plot_frame)
+        toolbar.update()
+        self.canvas._tkcanvas.pack(side= TOP, fill= BOTH, expand=True)
+
+        # draw it
         self.canvas.show()
         self.canvas.get_tk_widget().pack(side = RIGHT)
         self.canvas.mpl_connect('button_press_event', self.clicked)
@@ -56,25 +60,6 @@ class PlotGui():
         # left side
         side_frame = Frame(upper)
         side_frame.pack(side = LEFT, padx=self.padding/2.)
-
- 
-        # redraw button
-        self.add_redraw_button(side_frame)
-
-        # one y limit scale that effects all subplots
-        self.subplots = self.fig.axes[:]
-        ylim_scale = self.setup_lim_scales(side_frame,
-                                            subplots=self.subplots,
-                                            scale_range=[0,self.subplots[0].get_ylim()[1]*10.])
-
-        ylim_scale.set(self.subplots[0].get_ylim()[1]) # set to current upper limit
-        ylim_scale.pack()
-
-        # zoom
-        self.zooming = False
-        self.leftzoom = None
-        self.rightzoom = None
-        self.add_zoom(side_frame) 
 
         self.add_reset_button(side_frame)
         self.add_save_button(side_frame)
@@ -191,30 +176,8 @@ class PlotGui():
     def clicked(self, event):
         x, y = event.xdata, event.ydata
         if self.verbose > 1: print "plotgui:clicked: Last point clicked at x=%s y=%s" % (x, y)
-
-        if self.zooming:
-            if self.leftzoom is None:
-                self.leftzoom = [x,y]
-            elif self.rightzoom is None:
-                self.rightzoom = [x,y]
-            if (self.leftzoom is not None) & (self.rightzoom is not None):
-                xlow = self.leftzoom[0]
-                xhigh = self.rightzoom[0]
-                ylow = self.leftzoom[1]
-                yhigh = self.rightzoom[1]
-                self.scale_plots(self.subplots, 
-                                 values={'left':xlow,'right':xhigh,'low':ylow,'high':yhigh})
-                self.zooming = False
-                self.leftzoom = None
-                self.rightzoom = None
-                self.redraw()
-
         return [x,y]
     
-    # pay attention to mouse clicks for zoom
-    def set_zoom(self):
-        self.zooming = True
-
     # redraw script
     def redraw(self):
         self.canvas.draw()
