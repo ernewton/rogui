@@ -17,7 +17,6 @@ import tkFileDialog
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 
 import numpy as np
-import pandas as pd
 import threading
 
 ######

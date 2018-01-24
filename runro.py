@@ -42,7 +42,7 @@ def read_text(myfile):
                            dtype={"names": ("time", "flux", "e_flux"),
                                   "formats": ("f8", "f4", "f4")})
         
-        return pd.DataFrame(lc)
+        return lc
     except:
         print myfile
         return False

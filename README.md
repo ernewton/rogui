@@ -11,3 +11,9 @@ Use the quit button to quit the GUI.
 
 Known bugs:
 Using other matplotlib windows while running the GUI does not work.
+Not tested with python3
+
+Dependencies for base code:
+numpy, scipy, Tkinter, matplotlib, threading, pickle
+
+Examples also requite astropy
