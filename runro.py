@@ -145,4 +145,4 @@ except:
 # run the GUI
 root = Tk() # create a root window
 pg = RGui(root, rotation_plot, read_text, fit_period, filelist)
-root.mainloop()
+pg.start()

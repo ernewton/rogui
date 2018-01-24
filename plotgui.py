@@ -18,18 +18,21 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 
 import numpy as np
 import pandas as pd
-
+import threading
 
 ######
 # A plotting GUI
 ######
 
-class PlotGui():
+class PlotGui(threading.Thread):
  
     def __init__(self,root,fig,verbose=0):
+        threading.Thread.__init__(self)
+        
         # to do: dynamically choose whether y range is equal-sided
         self.verbose = verbose
         self.fig = fig
+        self.root = root
         
         # basic settings
         root.title("Plotting GUI ") # title the window
@@ -66,6 +69,9 @@ class PlotGui():
         self.add_dir_button(side_frame)
         self.add_file_value(side_frame)
 
+        self.add_quit_button(side_frame)
+
+
     def add_redraw_button(self,frame):
         redraw = Button(frame, text='Redraw', font=self.bigfont, command=self.redraw)
         redraw.pack(side = TOP, pady=self.padding, fill=BOTH)
@@ -93,6 +99,10 @@ class PlotGui():
         self.dir_value = StringVar()
         self.dir_value.set(os.path.dirname(os.getcwd()))
         Entry(frame,textvariable=self.dir_value,font=self.smallfont).pack(padx=self.padding)
+
+    def add_quit_button(self,frame):
+        quit = Button(frame, text='QUIT GUI', font=self.bigfont, command=self.quit)
+        quit.pack(side = TOP, pady=self.padding, fill=BOTH)
 
 
     ###### 
@@ -216,3 +226,7 @@ class PlotGui():
     def choose_dir(self):
         dir_name = tkFileDialog.askdirectory()
         self.dir_value.set(str(dir_name) if dir_name else os.path.abspath(os.path.realpath(__file__)))
+
+    # destroy the GUI
+    def quit(self):
+        self.root.destroy()

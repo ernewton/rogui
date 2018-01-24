@@ -22,6 +22,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import pickle
+import threading
 
 # main GUI
 class RGui(PlotGui):
@@ -93,7 +94,9 @@ class RGui(PlotGui):
         # refit using the current options and plot the results
         refit = Button(lower_right2, text='Re-fit', command=self.refit, font=self.bigfont)
         refit.pack(side = LEFT)
- 
+
+        #pgram = Button(lower_right2, text='Pgram', command=self.plot_pgram, font=self.bigfont)
+        #pgram.pack(side = LEFT)
 
         ######
         # This changes the overall state
@@ -137,6 +140,7 @@ class RGui(PlotGui):
 
 
         self.refit()
+
         
     # fit the data using supplied function
     def refit(self, vbest=None):
@@ -150,6 +154,7 @@ class RGui(PlotGui):
             pmax = 1000
 
         f, p, a = self.fitfunc(self.data, pmin=pmin, pmax=pmax, vbest=vbest)
+        self.period_entry.set(1./f)
         self.frequency = f
         self.phase = p
         self.amplitude = a
@@ -211,3 +216,43 @@ class RGui(PlotGui):
 
 
 
+    def plot_pgram(self):
+        try:
+            pmin = float(self.pmin.get())
+            pmax = float(self.pmax.get())
+        except:
+            print "Invalid pmin or pmax, using defaults."
+            pmin = 0.1
+            pmax = 1000
+
+        root2 = Toplevel()
+        pgram_gui = PgramGui(root2,self.fitfunc, self.data, pmin=0.1, pmax=1000.)
+        
+
+
+class PgramGui(threading.Thread):
+
+    def __init__(self, root, fitfunc, data, pmin=0.1, pmax=1000.):
+
+        threading.Thread.__init__(self)
+  
+        self.fig = plt.figure()
+        
+        # basic settings
+        root.title("Pgram GUI ") # title the window
+  
+        # upper GUI: plot and y limit bar
+        upper = Frame()
+        upper.pack(side=TOP)
+
+        # for the plot created above
+        plot_frame = Frame(upper)
+        plot_frame.pack(side=RIGHT)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=plot_frame)
+
+        freqs, power = fitfunc(data, pmin=pmin, pmax=pmax, return_pgram=True)
+        plt.plot(freqs, power)
+        self.canvas.show()
+        self.canvas.get_tk_widget().pack(side = RIGHT)
+
+        self.start()
