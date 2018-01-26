@@ -105,7 +105,7 @@ import math
 def rotation_plot(lc_data, 
                   fig, 
                   plot_binned=False,
-                  plot_model=True,
+                  plot_model=False,
                   frequency=1., phase=0., amplitude=0.01
                   ):  
 
@@ -128,7 +128,6 @@ def rotation_plot(lc_data,
         # raw light curve: flux v. data number
         dat = fig.add_subplot(nrows,ncols,1+i)
         plt.title(lc['file'])
-        print 'sdf', lc['file']
         #plt.scatter(np.arange(len(lc['flux'])), lc['flux'], c=c, cmap=cm, vmax=1.3*len(lc['flux']))
         #plt.xlabel('Data number')
         #plt.ylabel('Magnitude')
@@ -136,10 +135,12 @@ def rotation_plot(lc_data,
         fin =np.isfinite(lc['flux'])
         scaled_mags = (lc['flux']-lc['flux'][fin].mean())/lc['flux'][fin].std()
         freqs, periodogram = LombScargle(np.array(lc['time'][fin]).astype('float64'), np.array(scaled_mags[fin]).astype('float64')).autopower(minimum_frequency=1./90.,maximum_frequency=1./0.01)
-        plt.plot(1./freqs, periodogram)
+        plt.plot(1./freqs, periodogram, label='Stellar signal')
         fin =np.isfinite(lc['mom1'])
         freqs, periodogram = LombScargle(np.array(lc['mom_time'][fin]).astype('float64'), np.array(lc['mom1'][fin]).astype('float64')).autopower(minimum_frequency=1./90.,maximum_frequency=1./0.01)
-        plt.plot(1./freqs, periodogram, ':', c='indianred')
+        plt.plot(1./freqs, periodogram, ':', c='indianred', label='Spacecraft motion')
+        plt.xlabel('Period')
+        plt.ylabel('Power')
         #plt.plot([1./(24.5+frequency), 1./(24.5+frequency)], [0,1], '--', c='r')
         #plt.plot([1./(24.5-frequency), 1./(24.5-frequency)], [0,1], '--', c='r')
         #plt.plot([1./(2*frequency), 1./(2*frequency)], [0,1], ':', c='r')

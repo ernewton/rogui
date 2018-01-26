@@ -16,10 +16,12 @@ else:
 import tkMessageBox
 import tkFont  
 import tkFileDialog
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+
+import matplotlib
+matplotlib.use("TkAgg")
+from matplotlib import pyplot as plt
 
 import numpy as np
-import matplotlib.pyplot as plt
 import pickle
 import threading
 
@@ -41,7 +43,7 @@ class RGui(PlotGui):
                          
         # make figure
         self.fig = plt.figure()
-        self.fig.set_size_inches(13,7.5)
+        self.fig.set_size_inches(10.5,6)
 
         # read in the data and plot it
         self.star = 'target'
@@ -53,12 +55,12 @@ class RGui(PlotGui):
         PlotGui.__init__(self, root, self.fig)
 
         # lower frames for period fitting options
-        lower = Frame(root, borderwidth=1)
+        lower = Frame(root, borderwidth=10)
         lower.pack()
         lower_left = Frame(lower)
-        lower_left.pack(side = LEFT, fill = BOTH, padx= 20, pady = 10)
+        lower_left.pack(side = LEFT, fill = BOTH, padx= 20, pady = self.padding)
         lower_right = Frame(lower)
-        lower_right.pack(side = RIGHT, fill = BOTH, padx = 20, pady = 10)  
+        lower_right.pack(side = RIGHT, fill = BOTH, padx = 20, pady = self.padding)  
 
         # text box for period entry
         self.period_entry=StringVar()
@@ -74,19 +76,19 @@ class RGui(PlotGui):
         lower2 = Frame(root, borderwidth=1)
         lower2.pack()
         lower_left2 = Frame(lower2)
-        lower_left2.pack(side = LEFT, fill = BOTH, padx= 20, pady = 10)
+        lower_left2.pack(side = LEFT, fill = BOTH, padx= 20, pady = self.padding)
         lower_right2 = Frame(lower2)
-        lower_right2.pack(side = RIGHT, fill = BOTH, padx = 20, pady = 10)  
+        lower_right2.pack(side = RIGHT, fill = BOTH, padx = 20, pady = self.padding)  
 
         # min and max period to fit
         Label(lower_left2,text='P(min) -> P(max):   ', font=self.smallfont).pack(pady=self.padding, side=LEFT)
         self.pmin=StringVar()
-        entry = Entry(lower_left2, textvariable=self.pmin, width=10)
+        entry = Entry(lower_left2, textvariable=self.pmin, width=5)
         self.pmin.set(0.1)
         entry.pack(side=LEFT)
 
         self.pmax=StringVar()
-        entry = Entry(lower_left2, textvariable=self.pmax, width=10)
+        entry = Entry(lower_left2, textvariable=self.pmax, width=5)
         self.pmax.set(1000.)
         entry.pack(side=RIGHT)
         

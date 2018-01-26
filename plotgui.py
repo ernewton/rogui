@@ -14,6 +14,9 @@ else:
 import tkMessageBox
 import tkFont
 import tkFileDialog
+
+import matplotlib
+matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 
 import numpy as np
@@ -37,10 +40,10 @@ class PlotGui(threading.Thread):
         root.title("Plotting GUI ") # title the window
         self.bigfont = tkFont.Font(family="Times", size=16) # title font
         self.smallfont = tkFont.Font(family="Times", size=12) # text font
-        self.padding = 10 # amount of padding
+        self.padding = 5 # amount of padding
 
         # upper GUI: plot and y limit bar
-        upper = Frame()
+        upper = Frame(borderwidth=10)
         upper.pack(side=TOP)
 
         # for the plot created above
